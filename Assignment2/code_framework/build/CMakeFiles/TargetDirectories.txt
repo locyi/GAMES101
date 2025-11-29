@@ -1,0 +1,3 @@
+/media/xing/other/GAMES101/GAMES101_Work/Assignment2/code_framework/build/CMakeFiles/Rasterizer.dir
+/media/xing/other/GAMES101/GAMES101_Work/Assignment2/code_framework/build/CMakeFiles/edit_cache.dir
+/media/xing/other/GAMES101/GAMES101_Work/Assignment2/code_framework/build/CMakeFiles/rebuild_cache.dir

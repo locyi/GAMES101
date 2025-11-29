@@ -1,0 +1,7 @@
+{
+    "cmake.sourceDirectory": "/media/xing/other/GAMES101/GAMES101_Work/Assignment1/code_framework",
+    "files.associations": {
+        "*.c": "c",
+        "ostream": "cpp"
+    }
+}
