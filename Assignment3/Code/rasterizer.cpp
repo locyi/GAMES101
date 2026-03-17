@@ -163,6 +163,34 @@ static bool insideTriangle(int x, int y, const Vector4f* _v){
     return false;
 }
 
+int msaa_proportion(int x, int y, const Vector3f* _v){   
+    int msaa_proportions = 0;
+    for (float i = float(x); i < x+1.0f; i+=0.5f){
+        for (float j = float(y); j < y+1.0f; j+=0.5f){
+            Vector3f pixel_center(i+0.25f, j+0.25f, float(1));
+            Vector3f edge[3];
+            edge[0] = _v[1] - _v[0];
+            edge[1] = _v[2] - _v[1];
+            edge[2] = _v[0] - _v[2];
+            Vector3f p_l_v_v0 = pixel_center - _v[0];
+            Vector3f p_l_v_v1 = pixel_center - _v[1];
+            Vector3f p_l_v_v2 = pixel_center - _v[2];
+    
+            if ((p_l_v_v0.x() * edge[0].y() - edge[0].x() * p_l_v_v0.y() > 0) && (p_l_v_v1.x() * edge[1].y() - edge[1].x() * p_l_v_v1.y() > 0) && (p_l_v_v2.x() * edge[2].y() - edge[2].x() * p_l_v_v2.y() > 0)){
+                msaa_proportions++;
+            }
+            if ((p_l_v_v0.x() * edge[0].y() - edge[0].x() * p_l_v_v0.y() < 0) && (p_l_v_v1.x() * edge[1].y() - edge[1].x() * p_l_v_v1.y() < 0) && (p_l_v_v2.x() * edge[2].y() - edge[2].x() * p_l_v_v2.y() < 0)){
+                msaa_proportions++;
+            }
+            if ((p_l_v_v0.x() * edge[0].y() - edge[0].x() * p_l_v_v0.y() == 0) || (p_l_v_v1.x() * edge[1].y() - edge[1].x() * p_l_v_v1.y() == 0) || (p_l_v_v2.x() * edge[2].y() - edge[2].x() * p_l_v_v2.y() == 0)){
+                msaa_proportions++;
+            }
+        }
+    }
+    return msaa_proportions;
+
+}
+
 static std::tuple<float, float, float> computeBarycentric2D(float x, float y, const Vector4f* v){
     float c1 = (x*(v[1].y() - v[2].y()) + (v[2].x() - v[1].x())*y + v[1].x()*v[2].y() - v[2].x()*v[1].y()) / (v[0].x()*(v[1].y() - v[2].y()) + (v[2].x() - v[1].x())*v[0].y() + v[1].x()*v[2].y() - v[2].x()*v[1].y());
     float c2 = (x*(v[2].y() - v[0].y()) + (v[0].x() - v[2].x())*y + v[2].x()*v[0].y() - v[0].x()*v[2].y()) / (v[1].x()*(v[2].y() - v[0].y()) + (v[0].x() - v[2].x())*v[1].y() + v[2].x()*v[0].y() - v[0].x()*v[2].y());
@@ -259,6 +287,56 @@ static Eigen::Vector2f interpolate(float alpha, float beta, float gamma, const E
 //Screen space rasterization
 void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eigen::Vector3f, 3>& view_pos) 
 {
+    auto v = t.toVector4();
+    Vector3f t_vertax[3] = {(v[0].head<3>())/v[0].w(), (v[1].head<3>())/v[1].w(), (v[2].head<3>())/v[2].w()};
+    float border_x_min = std::min({v[0].x(), v[1].x(), v[2].x()});
+    float border_x_max = std::max({v[0].x(), v[1].x(), v[2].x()});
+    float border_y_min = std::min({v[0].y(), v[1].y(), v[2].y()});
+    float border_y_max = std::max({v[0].y(), v[1].y(), v[2].y()});
+    typedef struct{
+        int left_pixel_border;
+        int right_pixel_border;
+        int up_pixel_border;
+        int down_pixel_border;
+    }bounding_box;
+    bounding_box pixel_border;
+    pixel_border.left_pixel_border = floor(border_x_min);
+    pixel_border.right_pixel_border = ceil(border_x_max);
+    pixel_border.up_pixel_border = ceil(border_y_max);
+    pixel_border.down_pixel_border = floor(border_y_min);
+    
+
+    
+    for (int x = pixel_border.left_pixel_border; x < pixel_border.right_pixel_border; x++){
+        for (int y = pixel_border.down_pixel_border; y < pixel_border.up_pixel_border; y++){
+            int pix_ind = get_index(x, y);
+            int msaa_proportions = msaa_proportion(x, y, t_vertax);
+            if (msaa_proportions != 0){
+                auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
+                float Z = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+                float zp = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                zp *= Z;
+                if (zp < depth_buf[pix_ind]){
+                    Vector2i pixel(x, y);
+                    auto interpolated_color = Z * (alpha * t.color[0] / v[0].w() + beta * t.color[1] / v[1].w() + gamma * t.color[2] / v[2].w());
+                    auto interpolated_normal = Z * (alpha * t.normal[0] / v[0].w() + beta * t.normal[1] / v[1].w() + gamma * t.normal[2] / v[2].w());
+                    auto interpolated_texcoords = Z * (alpha * t.tex_coords[0] / v[0].w() + beta * t.tex_coords[1] / v[1].w() + gamma * t.tex_coords[2] / v[2].w());
+                    auto interpolated_shadingcoords = Z * (alpha * view_pos[0] / v[0].w() + beta * view_pos[1] / v[1].w() + gamma * view_pos[2] / v[2].w());
+                    fragment_shader_payload payload( 
+                        interpolated_color, 
+                        interpolated_normal.normalized(), 
+                        interpolated_texcoords, 
+                        texture ? &*texture : nullptr
+                    );
+                    payload.view_pos = interpolated_shadingcoords;
+                    auto pixel_color = fragment_shader(payload);
+
+                    set_pixel(pixel,msaa_proportions*pixel_color);
+                    depth_buf[pix_ind] = zp;
+                }
+            }
+        }
+    }
     // TODO: From your HW3, get the triangle rasterization code.
     // TODO: Inside your rasterization loop:
     //    * v[i].w() is the vertex view space depth value z.

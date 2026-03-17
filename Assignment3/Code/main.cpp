@@ -49,8 +49,44 @@ Eigen::Matrix4f get_model_matrix(float angle)
 
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
 {
-    // TODO: Use the same projection matrix from the previous assignments
+    // TODO: Copy-paste your implementation from the previous assignment.
+    Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
+    Eigen::Matrix4f matrixPerspToOrth = Eigen::Matrix4f::Zero();
+    Eigen::Matrix4f matrixOrth_translate = Eigen::Matrix4f::Zero();
+    Eigen::Matrix4f matrixOrth_scale = Eigen::Matrix4f::Zero();
+    float fov_rad = (eye_fov * MY_PI)/180;
+    float x_scale_factor = 2*std::abs(zNear)*tan(fov_rad/2)*aspect_ratio; //right-left
+    float y_scale_factor = 2*std::abs(zNear)*tan(fov_rad/2); //top-bottom
+    float z_scale_factor = zNear-zFar; //far-near !!Opengl z axis is negative!!
 
+
+
+
+    matrixPerspToOrth <<
+        -zNear, 0, 0, 0,
+        0, -zNear, 0, 0,
+        0, 0, -(zNear + zFar), -zNear * zFar,
+        0, 0, 1, 0;
+
+
+
+    matrixOrth_translate << 
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, -(-zNear + -zFar)/2,
+        0, 0, 0, 1;
+
+
+    matrixOrth_scale <<
+        2/x_scale_factor, 0, 0, 0,
+        0, 2/y_scale_factor, 0, 0,
+        0, 0, 2/z_scale_factor, 0,
+        0, 0, 0, 1;
+
+    projection = matrixOrth_scale * matrixOrth_translate * matrixPerspToOrth;
+
+
+    return projection;
 }
 
 Eigen::Vector3f vertex_shader(const vertex_shader_payload& payload)

@@ -39,7 +39,7 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
     return Vector4f(v3.x(), v3.y(), v3.z(), w);
 }
 
-int col_por[490001] = {0};
+
 static bool insideTriangle(int x, int y, const Vector3f* _v)
 {   
     Vector3f pixel_center(x+0.5, y+0.5, float(1));
@@ -213,8 +213,8 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t){
     }bounding_box;
     bounding_box pixel_border;
     pixel_border.left_pixel_border = floor(border_x_min);
-    pixel_border.right_pixel_border = floor(border_x_max);
-    pixel_border.up_pixel_border = floor(border_y_max);
+    pixel_border.right_pixel_border = ceil(border_x_max);
+    pixel_border.up_pixel_border = ceil(border_y_max);
     pixel_border.down_pixel_border = floor(border_y_min);
     
 
