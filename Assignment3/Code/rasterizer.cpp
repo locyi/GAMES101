@@ -149,7 +149,7 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
     return Vector4f(v3.x(), v3.y(), v3.z(), w);
 }
 
-static bool insideTriangle(int x, int y, const Vector4f* _v){
+static bool insideTriangle(float x, float y, const Vector4f* _v){
     Vector3f v[3];
     for(int i=0;i<3;i++)
         v[i] = {_v[i].x(),_v[i].y(), 1.0};
@@ -162,7 +162,7 @@ static bool insideTriangle(int x, int y, const Vector4f* _v){
         return true;
     return false;
 }
-
+/*
 int msaa_proportion(int x, int y, const Vector3f* _v){   
     int msaa_proportions = 0;
     for (float i = float(x); i < x+1.0f; i+=0.5f){
@@ -190,6 +190,7 @@ int msaa_proportion(int x, int y, const Vector3f* _v){
     return msaa_proportions;
 
 }
+*/
 
 static std::tuple<float, float, float> computeBarycentric2D(float x, float y, const Vector4f* v){
     float c1 = (x*(v[1].y() - v[2].y()) + (v[2].x() - v[1].x())*y + v[1].x()*v[2].y() - v[2].x()*v[1].y()) / (v[0].x()*(v[1].y() - v[2].y()) + (v[2].x() - v[1].x())*v[0].y() + v[1].x()*v[2].y() - v[2].x()*v[1].y());
@@ -310,9 +311,9 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
     for (int x = pixel_border.left_pixel_border; x < pixel_border.right_pixel_border; x++){
         for (int y = pixel_border.down_pixel_border; y < pixel_border.up_pixel_border; y++){
             int pix_ind = get_index(x, y);
-            int msaa_proportions = msaa_proportion(x, y, t_vertax);
-            if (msaa_proportions != 0){
-                auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
+            //int msaa_proportions = msaa_proportion(x, y, t_vertax);
+            if (insideTriangle(x+0.5, y+0.5, t.v)){
+                auto[alpha, beta, gamma] = computeBarycentric2D(x+0.5, y+0.5, t.v);
                 float Z = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
                 float zp = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
                 zp *= Z;
@@ -331,7 +332,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
                     payload.view_pos = interpolated_shadingcoords;
                     auto pixel_color = fragment_shader(payload);
 
-                    set_pixel(pixel,msaa_proportions*pixel_color);
+                    set_pixel(pixel,pixel_color);
                     depth_buf[pix_ind] = zp;
                 }
             }
