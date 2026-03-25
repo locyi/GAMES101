@@ -119,6 +119,7 @@ Eigen::Vector3f texture_fragment_shader(const fragment_shader_payload& payload)
     Eigen::Vector3f return_color = {0, 0, 0};
     if (payload.texture)
     {
+        return_color << payload.texture->getColor(payload.tex_coords.x(), payload.tex_coords.y());
         // TODO: Get the texture value at the texture coordinates of the current fragment
 
     }
@@ -146,6 +147,16 @@ Eigen::Vector3f texture_fragment_shader(const fragment_shader_payload& payload)
 
     for (auto& light : lights)
     {
+        Eigen::Vector3f La = ka.cwiseProduct(amb_light_intensity);
+        float dist_light_point = (light.position - point).squaredNorm();
+        Eigen::Vector3f obj_to_light = (light.position - point).normalized();//点乘时向量要单位化
+        Eigen::Vector3f Ld = kd.cwiseProduct((light.intensity/dist_light_point)*std::fmaxf(0,normal.dot(obj_to_light)));
+        float dist_eye_point = (eye_pos - point).squaredNorm();
+        Eigen::Vector3f obj_to_eye = (eye_pos - point).normalized();
+        Eigen::Vector3f h = (obj_to_eye + obj_to_light).normalized();
+        Eigen::Vector3f Ls = ks.cwiseProduct((light.intensity/dist_light_point)*powf32((std::fmaxf(0,normal.dot(h))),p));
+        Eigen::Vector3f L = (La + Ld + Ls);
+        result_color+=L;
         // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
         // components are. Then, accumulate that result on the *result_color* object.
 
@@ -176,6 +187,16 @@ Eigen::Vector3f phong_fragment_shader(const fragment_shader_payload& payload)
     Eigen::Vector3f result_color = {0, 0, 0};
     for (auto& light : lights)
     {
+        Eigen::Vector3f La = ka.cwiseProduct(amb_light_intensity);
+        float dist_light_point = (light.position - point).squaredNorm();
+        Eigen::Vector3f obj_to_light = (light.position - point).normalized();//点乘时向量要单位化
+        Eigen::Vector3f Ld = kd.cwiseProduct((light.intensity/dist_light_point)*std::fmaxf(0,normal.dot(obj_to_light)));
+        float dist_eye_point = (eye_pos - point).squaredNorm();
+        Eigen::Vector3f obj_to_eye = (eye_pos - point).normalized();
+        Eigen::Vector3f h = (obj_to_eye + obj_to_light).normalized();
+        Eigen::Vector3f Ls = ks.cwiseProduct((light.intensity/dist_light_point)*powf32((std::fmaxf(0,normal.dot(h))),p));
+        Eigen::Vector3f L = (La + Ld + Ls);
+        result_color+=L;
         // TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
         // components are. Then, accumulate that result on the *result_color* object.
         
