@@ -149,6 +149,33 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
     return Vector4f(v3.x(), v3.y(), v3.z(), w);
 }
 
+static bool insideTriangle(int x, int y, const Vector3f* _v)
+{   
+    Vector3f pixel_center((float)x, (float)y, float(1));
+    Vector3f edge[3];
+    edge[0] = _v[1] - _v[0];
+    edge[1] = _v[2] - _v[1];
+    edge[2] = _v[0] - _v[2];
+    Vector3f p_l_v_v0 = pixel_center - _v[0];
+    Vector3f p_l_v_v1 = pixel_center - _v[1];
+    Vector3f p_l_v_v2 = pixel_center - _v[2];
+    if ((p_l_v_v0.x() * edge[0].y() - edge[0].x() * p_l_v_v0.y() > 0) && (p_l_v_v1.x() * edge[1].y() - edge[1].x() * p_l_v_v1.y() > 0) && (p_l_v_v2.x() * edge[2].y() - edge[2].x() * p_l_v_v2.y() > 0)){
+        return 1;
+    }
+    if ((p_l_v_v0.x() * edge[0].y() - edge[0].x() * p_l_v_v0.y() < 0) && (p_l_v_v1.x() * edge[1].y() - edge[1].x() * p_l_v_v1.y() < 0) && (p_l_v_v2.x() * edge[2].y() - edge[2].x() * p_l_v_v2.y() < 0)){
+        return 1;
+    }
+    if ((p_l_v_v0.x() * edge[0].y() - edge[0].x() * p_l_v_v0.y() == 0) || (p_l_v_v1.x() * edge[1].y() - edge[1].x() * p_l_v_v1.y() == 0) || (p_l_v_v2.x() * edge[2].y() - edge[2].x() * p_l_v_v2.y() == 0)){
+        return 1;
+    }
+    return 0;
+
+    // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
+}
+
+
+
+/*
 static bool insideTriangle(float x, float y, const Vector4f* _v){
     Vector3f v[3];
     for(int i=0;i<3;i++)
@@ -162,6 +189,8 @@ static bool insideTriangle(float x, float y, const Vector4f* _v){
         return true;
     return false;
 }
+*/
+
 /*
 int msaa_proportion(int x, int y, const Vector3f* _v){   
     int msaa_proportions = 0;
@@ -312,7 +341,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
         for (int y = pixel_border.down_pixel_border; y < pixel_border.up_pixel_border; y++){
             int pix_ind = get_index(x, y);
             //int msaa_proportions = msaa_proportion(x, y, t_vertax);
-            if (insideTriangle(x+0.5, y+0.5, t.v)){
+            if (insideTriangle(x+0.5, y+0.5, t_vertax)){
                 auto[alpha, beta, gamma] = computeBarycentric2D(x+0.5, y+0.5, t.v);
                 float Z = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
                 float zp = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();

@@ -63,36 +63,6 @@ static bool insideTriangle(float x, float y, const Vector3f* _v)
     return 0;
 }
 
-
-
-int color_proportion(int x, int y, const Vector3f* _v){   
-    int color_proportions = 0;
-    for (float i = float(x); i < x+1.0f; i+=0.5f){
-        for (float j = float(y); j < y+1.0f; j+=0.5f){
-            Vector3f pixel_center(i+0.25f, j+0.25f, float(1));
-            Vector3f edge[3];
-            edge[0] = _v[1] - _v[0];
-            edge[1] = _v[2] - _v[1];
-            edge[2] = _v[0] - _v[2];
-            Vector3f p_l_v_v0 = pixel_center - _v[0];
-            Vector3f p_l_v_v1 = pixel_center - _v[1];
-            Vector3f p_l_v_v2 = pixel_center - _v[2];
-    
-            if ((p_l_v_v0.x() * edge[0].y() - edge[0].x() * p_l_v_v0.y() > 0) && (p_l_v_v1.x() * edge[1].y() - edge[1].x() * p_l_v_v1.y() > 0) && (p_l_v_v2.x() * edge[2].y() - edge[2].x() * p_l_v_v2.y() > 0)){
-                color_proportions++;
-            }
-            if ((p_l_v_v0.x() * edge[0].y() - edge[0].x() * p_l_v_v0.y() < 0) && (p_l_v_v1.x() * edge[1].y() - edge[1].x() * p_l_v_v1.y() < 0) && (p_l_v_v2.x() * edge[2].y() - edge[2].x() * p_l_v_v2.y() < 0)){
-                color_proportions++;
-            }
-            if ((p_l_v_v0.x() * edge[0].y() - edge[0].x() * p_l_v_v0.y() == 0) || (p_l_v_v1.x() * edge[1].y() - edge[1].x() * p_l_v_v1.y() == 0) || (p_l_v_v2.x() * edge[2].y() - edge[2].x() * p_l_v_v2.y() == 0)){
-                color_proportions++;
-            }
-        }
-    }
-    return color_proportions;
-
-}
-
 static std::tuple<float, float, float> computeBarycentric2D(float x, float y, const Vector3f* v)
 {
     float c1 = (x*(v[1].y() - v[2].y()) + (v[2].x() - v[1].x())*y + v[1].x()*v[2].y() - v[2].x()*v[1].y()) / (v[0].x()*(v[1].y() - v[2].y()) + (v[2].x() - v[1].x())*v[0].y() + v[1].x()*v[2].y() - v[2].x()*v[1].y());
@@ -151,51 +121,7 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
 }
 
 //Screen space rasterization
-/*
-void rst::rasterizer::rasterize_triangle(const Triangle& t) {
-    auto v = t.toVector4();
-    Vector3f t_vertex[3] = {(v[0].head<3>())/v[0].w(), (v[1].head<3>())/v[1].w(), (v[2].head<3>())/v[2].w()};
-    float border_x_min = std::min({v[0].x(), v[1].x(), v[2].x()});
-    float border_x_max = std::max({v[0].x(), v[1].x(), v[2].x()});
-    float border_y_min = std::min({v[0].y(), v[1].y(), v[2].y()});
-    float border_y_max = std::max({v[0].y(), v[1].y(), v[2].y()});
-    typedef struct{
-        int left_pixel_border;
-        int right_pixel_border;
-        int up_pixel_border;
-        int down_pixel_border;
-    }bounding_box;
-    bounding_box pixel_border;
-    pixel_border.left_pixel_border = floor(border_x_min);
-    pixel_border.right_pixel_border = floor(border_x_max);
-    pixel_border.up_pixel_border = floor(border_y_max);
-    pixel_border.down_pixel_border = floor(border_y_min);
-    
-    
-    //int pixel_index[555555] = {0};
-    
-    for (int x = pixel_border.left_pixel_border; x < pixel_border.right_pixel_border; x++){
-        for (int y = pixel_border.down_pixel_border; y < pixel_border.up_pixel_border; y++){
-            if (insideTriangle(x, y, t_vertex)){
-                //pixel_index[get_index(int(x-0.5), int(y-0.5))] = 1;
-                auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
-                float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-                float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-                z_interpolated *= w_reciprocal;
-                if (z_interpolated < depth_buf[get_index(x, y)]){
-                    Eigen::Vector3f pixel(x, y, 1);
-                    set_pixel(pixel, t.getColor());
-                    depth_buf[get_index(x, y)] = z_interpolated;
-                }
-            }
-        }
-    }
-    //If so, use the following code to get the interpolated z value.
-    
 
-    
-    // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
-}*/
 
 void rst::rasterizer::rasterize_triangle(const Triangle& t){
     auto v = t.toVector4();
@@ -212,8 +138,8 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t){
     }bounding_box;
     bounding_box pixel_border;
     pixel_border.left_pixel_border = floor(border_x_min);
-    pixel_border.right_pixel_border = ceil(border_x_max);
-    pixel_border.up_pixel_border = ceil(border_y_max);
+    pixel_border.right_pixel_border = ceil(border_x_max) - 1;
+    pixel_border.up_pixel_border = ceil(border_y_max) - 1;
     pixel_border.down_pixel_border = floor(border_y_min);
     
 
@@ -224,44 +150,38 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t){
             float sub_p[4][2] = {{0.25,0.25},{0.25,0.75},{0.75,0.25},{0.75,0.75}};
             int percentage = 0;
             float z_interpolated[4] = {0};
+            float z_final = std::numeric_limits<float>::infinity();
             for (int i = 0; i < 4; i++){
                 float sub_px = (float)x + sub_p[i][0];
                 float sub_py = (float)y + sub_p[i][1];
-                
-                if (insideTriangle(sub_px,sub_py,t_vertex)) percentage++;
-                    
+
                 auto[alpha, beta, gamma] = computeBarycentric2D(sub_px, sub_py, t_vertex);
                 float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
                 z_interpolated[i] = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
                 z_interpolated[i] *= w_reciprocal;
-
-            }
-            float z_final = std::numeric_limits<float>::infinity();
-            for (int k = 0; k < 4; k++){
-                if (z_interpolated[k] < z_final){
-                    z_final = z_interpolated[k];
+                if (insideTriangle(sub_px,sub_py,t_vertex)){
+                    percentage++;
                 }
+                if (z_interpolated[i] < z_final) z_final = z_interpolated[i];
             }
-            if (percentage != 0){
+            
+        
+            if (percentage > 0){
                 if (z_final < depth_buf[pix_ind]){
                     Eigen::Vector3f pixel(x, y, 1);
-                    set_pixel(pixel, percentage*t.getColor()/4.0f);
+                    if (std::isfinite(depth_buf[pix_ind])){
+                        Eigen::Vector3f pri_color(frame_buf[pix_ind]);
+                        Eigen::Vector3f mix_color;
+                        float coverage = percentage / 4.0f;
+                        mix_color = pri_color*(1.0f - coverage) + coverage*t.getColor();
+                        set_pixel(pixel, mix_color);
+                    }
+                    else{
+                        set_pixel(pixel, percentage*t.getColor()/4.0f);
+                    } 
                     depth_buf[pix_ind] = z_final;
                 }
             }
-
-            /* int color_proportions = color_proportion(x, y, t_vertex);
-            if (color_proportions != 0){
-                auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
-                float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-                float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-                z_interpolated *= w_reciprocal;
-                if (z_interpolated < depth_buf[pix_ind]){
-                    Vector3f pixel(x, y, 1);
-                    set_pixel(pixel,color_proportions*t.getColor()/4.0f);
-                    depth_buf[pix_ind] = z_interpolated;
-                }
-            } */
         }
     }
     //If so, use the following code to get the interpolated z value.
