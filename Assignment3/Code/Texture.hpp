@@ -24,10 +24,23 @@ public:
 
     Eigen::Vector3f getColor(float u, float v)
     {
+        // Clamp u and v to [0, 1] range
+        u = std::max(0.0f, std::min(1.0f, u));
+        v = std::max(0.0f, std::min(1.0f, v));
+        
         auto u_img = u * width;
         auto v_img = (1 - v) * height;
-        auto color = image_data.at<cv::Vec3b>(v_img, u_img);
+        
+        // Clamp to valid pixel indices
+        u_img = std::max(0.0f, std::min((float)width - 1, u_img));
+        v_img = std::max(0.0f, std::min((float)height - 1, v_img));
+        
+        auto color = image_data.at<cv::Vec3b>((int)v_img, (int)u_img);
         return Eigen::Vector3f(color[0], color[1], color[2]);
+    }
+    Eigen::Vector3f  getColorBilinear(float u, float v)
+    {
+        
     }
 
 };
