@@ -239,8 +239,8 @@ Eigen::Vector3f displacement_fragment_shader(const fragment_shader_payload& payl
     // Vector ln = (-dU, -dV, 1)
     // Position p = p + kn * n * h(u,v)
     // Normal n = normalize(TBN * ln)
-    Eigen::Vector3f n = normal;
-    Eigen::Vector3f t;
+    Eigen::Vector3f n = normal; //局部坐标系z轴，指向法线方向
+    Eigen::Vector3f t;  //x轴，切向方向，u
     t << n.x()*n.y()/sqrtf(n.x()*n.x()+n.z()*n.z()), sqrtf(n.x()*n.x()+n.z()*n.z()), n.z()*n.y()/sqrtf(n.x()*n.x()+n.z()*n.z());
     Eigen::Vector3f b = n.cross(t);
     Eigen::Matrix3f TBN;
@@ -322,8 +322,10 @@ Eigen::Vector3f bump_fragment_shader(const fragment_shader_payload& payload)
     float v = payload.tex_coords.y();
     float w = payload.texture->width;
     float h = payload.texture->height;
-    float dU = kh * kn * ((payload.texture->getColor(u+1.0f/w,v)).norm() - (payload.texture->getColor(u,v)).norm());
-    float dV = kh * kn * ((payload.texture->getColor(u,v+1.0f/h)).norm() - (payload.texture->getColor(u,v)).norm());
+    //float dU = kh * kn * ((payload.texture->getColor(u+1.0f/w,v)).norm() - (payload.texture->getColor(u,v)).norm());
+    //float dV = kh * kn * ((payload.texture->getColor(u,v+1.0f/h)).norm() - (payload.texture->getColor(u,v)).norm());   
+    float dU = kh * kn * ((payload.texture->getColorBilinear(u+1.0f/w,v)).norm() - (payload.texture->getColorBilinear(u,v)).norm());
+    float dV = kh * kn * ((payload.texture->getColorBilinear(u,v+1.0f/h)).norm() - (payload.texture->getColorBilinear(u,v)).norm());
     Eigen::Vector3f ln;
     ln << -dU, -dV, 1.0f;
     normal = (TBN * ln).normalized();

@@ -40,7 +40,30 @@ public:
     }
     Eigen::Vector3f  getColorBilinear(float u, float v)
     {
+        u = std::max(0.0f, std::min(1.0f, u));
+        v = std::max(0.0f, std::min(1.0f, v));
         
+        auto u_img = u * width;
+        auto v_img = (1 - v) * height;
+
+        Eigen::Vector2i u00((int)floor(u_img),(int)floor(v_img));
+        Eigen::Vector2i u01((int)floor(u_img),(int)ceil(v_img));
+        Eigen::Vector2i u10((int)ceil(u_img),(int)floor(v_img));
+        Eigen::Vector2i u11((int)ceil(u_img),(int)ceil(v_img));
+        float s = u_img - u00.x();
+        float t = v_img - u00.y();
+        auto lerp = [](float x, float v0, float v1){
+            return v0 + x*(v1 - v0);
+        };
+        Eigen::Vector3f uone;
+        Eigen::Vector3f utwo;
+        Eigen::Vector3f color;
+        for (int i = 0; i < 3; i++){
+            uone[i] = lerp(s, (image_data.at<cv::Vec3b>(u00.y(), u00.x()))[i], (image_data.at<cv::Vec3b>(u10.y(), u10.x()))[i]);
+            utwo[i] = lerp(s, (image_data.at<cv::Vec3b>(u01.y(), u01.x()))[i], (image_data.at<cv::Vec3b>(u11.y(), u11.x()))[i]);
+            color[i] = lerp(t, uone[i], utwo[i]);
+        }
+        return Eigen::Vector3f(color[0], color[1], color[2]);
     }
 
 };
