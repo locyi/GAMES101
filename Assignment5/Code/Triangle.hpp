@@ -2,16 +2,31 @@
 
 #include "Object.hpp"
 
+#include <memory>
 #include <cstring>
+
+float determinant3(const Vector3f& a, const Vector3f& b, Vector3f& c){
+    float result;
+    result = a.x * b.y * c.z + b.x * c.y * a.z + c.x * a.y * b.z - c.x * b.y * a.z - a.x * c.y * b.z - b.x * a.y * c.z;
+    return result;
+}
 
 bool rayTriangleIntersect(const Vector3f& v0, const Vector3f& v1, const Vector3f& v2, const Vector3f& orig,
                           const Vector3f& dir, float& tnear, float& u, float& v)
 {
+    Vector3f v01 = v0 - v1;
+    Vector3f v02 = v0 - v2;
+    Vector3f vo = v0 - orig;
+    float coefficients = determinant3(dir, v01, v02);
+    tnear = determinant3(vo, v01, v02)/coefficients;
+    u = determinant3(dir, vo, v02)/coefficients;
+    v = determinant3(dir, v01, vo)/coefficients;
+
     // TODO: Implement this function that tests whether the triangle
     // that's specified bt v0, v1 and v2 intersects with the ray (whose
     // origin is *orig* and direction is *dir*)
     // Also don't forget to update tnear, u and v.
-    return false;
+    return u >= 0 && v >= 0 && u+v<=1 && tnear > 0;
 }
 
 class MeshTriangle : public Object
