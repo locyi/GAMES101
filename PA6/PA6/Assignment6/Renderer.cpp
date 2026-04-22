@@ -25,9 +25,15 @@ void Renderer::Render(const Scene& scene)
     for (uint32_t j = 0; j < scene.height; ++j) {
         for (uint32_t i = 0; i < scene.width; ++i) {
             // generate primary ray direction
-            float x = (2 * (i + 0.5) / (float)scene.width - 1) *
-                      imageAspectRatio * scale;
-            float y = (1 - 2 * (j + 0.5) / (float)scene.height) * scale;
+            float x;
+            float y;
+            x = (2 * ((float)i + 0.5f) / scene.width - 1)  * scale * imageAspectRatio;
+            y = (-2 * ((float)j + 0.5f) / scene.height + 1) * scale;
+            //靠，别忘记这里要把像素坐标变换回世界坐标，即(0，width)->(-1，1)，(height,0)->(-1,1),像素是以左上角为起点(0,0)，而摄像机是左下角
+            //其实就是逆向视口变换
+            Vector3f dir = Vector3f(x, y, -1);
+            dir = normalize(dir);
+            framebuffer[m++] = scene.castRay(Ray(eye_pos, dir), 0);
             // TODO: Find the x and y positions of the current pixel to get the
             // direction
             //  vector that passes through it.
