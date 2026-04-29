@@ -11,9 +11,12 @@ BVHAccel::BVHAccel(std::vector<Object*> p, int maxPrimsInNode,
     time(&start);
     if (primitives.empty())
         return;
-
-    root = recursiveBuild(primitives);
-
+    if (splitMethod == SplitMethod::NAIVE){
+        root = recursiveBuild(primitives);
+    }
+    else if(splitMethod == SplitMethod::SAH){
+        root = recursiveBuildSAH(primitives);
+    }
     time(&stop);
     double diff = difftime(stop, start);
     int hrs = (int)diff / 3600;
@@ -92,6 +95,100 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
 
     return node;
 }
+
+
+BVHBuildNode* BVHAccel::recursiveBuildSAH(std::vector<Object*>objects){
+    std::vector<BVHPrimitiveInfo> primitiveInfo(objects.size());
+    for (int i = 0; i < objects.size(); i++){
+        primitiveInfo[i].primieNum = i;
+        primitiveInfo[i].bounds = objects[i]->getBounds();
+        primitiveInfo[i].centriod = primitiveInfo[i].bounds.Centroid();
+    };
+    BVHBuildNode* node = new BVHBuildNode();
+    Bounds3 bounds;
+    for (int i = 0; i < objects.size(); ++i)
+        bounds = Union(bounds, objects[i]->getBounds());
+    if (objects.size() == 1) {
+        // Create leaf _BVHBuildNode_
+        node->bounds = primitiveInfo[0].bounds;
+        node->object = objects[0];
+        node->left = nullptr;
+        node->right = nullptr;
+        return node;
+    }
+    else if (objects.size() == 2) {
+        node->left = recursiveBuildSAH(std::vector{objects[0]});
+        node->right = recursiveBuildSAH(std::vector{objects[1]});
+
+        node->bounds = Union(node->left->bounds, node->right->bounds);
+        return node;
+    }
+    else{
+        float xLength = bounds.pMax.x-bounds.pMin.x;
+        float yLength = bounds.pMax.y-bounds.pMin.y;
+        float zLength = bounds.pMax.z-bounds.pMin.z;
+        float lengths[3] = {xLength, yLength, zLength};
+        node->splitAxis = std::max_element(lengths, lengths+3) - lengths;
+        std::vector<BVHPrimitiveInfo> buckets[12];
+        float minCost = std::numeric_limits<float>::max();
+        int splitPos = 0;
+        std::vector<int> index(objects.size());
+        for (int i = 0; i < objects.size(); i++){
+            index[i] = int((primitiveInfo[i].centriod[node->splitAxis]-bounds.pMin[node->splitAxis])/(bounds.pMax[node->splitAxis]-bounds.pMin[node->splitAxis])*12);
+            if (index[i] == 12) index[i] = 11;
+            buckets[index[i]].push_back(primitiveInfo[i]);
+        }
+        float surfaceLeft;
+        int numLeft = 0;
+        float surfaceRight;
+        int numRight = 0;
+        for (int i = 0; i < 11; i++){
+            Bounds3 tempBoundsLeft;
+            Bounds3 tempBoundsRight;
+            for (int j = 0; j <= i; j++){
+                for (int k = 0; k < buckets[j].size(); k++){
+                    tempBoundsLeft = Union(tempBoundsLeft, buckets[j][k].bounds);
+                    numLeft++;
+                    surfaceLeft = tempBoundsLeft.SurfaceArea();
+                }
+                
+            }
+            for (int j = i+1; j < 12; j++){
+                for (int k = 0; k < buckets[j].size(); k++){
+                    tempBoundsRight = Union(tempBoundsRight, buckets[j][k].bounds);
+                    numRight++;
+                    surfaceRight = tempBoundsRight.SurfaceArea();
+                }
+            }
+            float tempCost = surfaceLeft/bounds.SurfaceArea()*numLeft+surfaceRight/bounds.SurfaceArea()*numRight+0.125f;
+            if (tempCost < minCost){
+                minCost = tempCost;
+                splitPos = i;
+            }
+            numLeft = 0;
+            numRight = 0;
+        }
+    
+        std::vector<Object*>leftObjects;
+        std::vector<Object*>rightObjects;
+        for (int i = 0; i < objects.size(); i++){
+            if (index[i] <= splitPos){
+                leftObjects.push_back(objects[i]);
+            }
+            else{
+                rightObjects.push_back(objects[i]);
+            }
+        }
+        if (leftObjects.size() == 0 || rightObjects.size() == 0){
+            return recursiveBuild(objects);
+        }
+        node->left = recursiveBuildSAH(leftObjects);
+        node->right = recursiveBuildSAH(rightObjects);
+        node->bounds = Union(node->left->bounds, node->right->bounds);
+    };
+    return node;
+};
+
 
 Intersection BVHAccel::Intersect(const Ray& ray) const
 {

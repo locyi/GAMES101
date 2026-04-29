@@ -44,6 +44,7 @@ public:
     const int maxPrimsInNode;
     const SplitMethod splitMethod;
     std::vector<Object*> primitives;
+    BVHBuildNode* recursiveBuildSAH(std::vector<Object*>objects);
 };
 
 struct BVHBuildNode {
@@ -64,5 +65,10 @@ public:
 
 
 
+struct BVHPrimitiveInfo{
+    int primieNum;
+    Bounds3 bounds;
+    Vector3f centriod;
+};
 
 #endif //RAYTRACING_BVH_H
