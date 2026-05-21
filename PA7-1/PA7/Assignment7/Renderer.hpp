@@ -16,6 +16,8 @@ class Renderer
 {
 public:
     void Render(const Scene& scene);
+    // 添加一个子线程函数，参数包括：dirs, spp, eye_pos, framebuffer, scene, t, rows
+    static void subThread(std::vector<Vector3f>& dirs, int spp,  Vector3f eye_pos, std::vector<Vector3f>& framebuffer, const Scene& scene, uint32_t t, uint32_t rows, std::atomic<uint32_t>& processedPixels);
 
 private:
 };
